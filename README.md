@@ -16,7 +16,7 @@ Both should be installed and make sure mongodb is running.
 
 #### First Method
 ```shell
-git clone (https://github.com/divinoalexander/PikaChat.git)
+git clone https://github.com/divinoalexander/PikaChat.git
 cd PikaChat
 ```
 Now rename env files from .env.example to .env
