@@ -93,34 +93,62 @@ cd PikaChat
 
 2. Set up environment variables
 ```bash
-cd public
-mv .env.example .env
-cd ..
+# Frontend environment variables (root directory)
+cp .env.example .env
+
+# Server environment variables
 cd server
-mv .env.example .env
+cp .env.example .env
 cd ..
 ```
 
 3. Install dependencies
+
+Using npm:
 ```bash
+# Install frontend dependencies (in the root directory)
+npm install
+
 # Install server dependencies
 cd server
-yarn
+npm install
 cd ..
+```
 
-# Install client dependencies
-cd public
-yarn
+Or using yarn:
+```bash
+# Install frontend dependencies (in the root directory)
+yarn install
+
+# Install server dependencies
+cd server
+yarn install
+cd ..
 ```
 
 4. Start the application
-```bash
-# Start client (in one terminal)
-cd public
-yarn start
 
-# Start server (in another terminal)
+Using npm:
+```bash
+# Start server (in one terminal)
 cd server
+npm start
+# or for development with auto-restart
+npm run dev
+
+# Start frontend (in another terminal, from the root directory)
+npm start
+```
+
+Or using yarn:
+```bash
+# Start server (in one terminal)
+cd server
+yarn start
+# or for development with auto-restart
+yarn dev
+
+# Start frontend (in another terminal, from the root directory)
 yarn start
 ```
 
@@ -194,9 +222,6 @@ The application will be available at `localhost:3000`
 
 ## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-This project is licensed under the ISC License.
 
 ## Acknowledgments
 - Socket.IO for real-time communication
