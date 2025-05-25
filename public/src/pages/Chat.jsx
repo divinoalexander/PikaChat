@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
@@ -14,37 +14,61 @@ export default function Chat() {
   const [contacts, setContacts] = useState([]);
   const [currentChat, setCurrentChat] = useState(undefined);
   const [currentUser, setCurrentUser] = useState(undefined);
-  useEffect(async () => {
-    if (!localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)) {
-      navigate("/login");
-    } else {
-      setCurrentUser(
-        await JSON.parse(
-          localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
-        )
-      );
-    }
-  }, []);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const userData = localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY);
+        if (!userData) {
+          navigate("/login");
+        } else {
+          setCurrentUser(JSON.parse(userData));
+        }
+      } catch (error) {
+        console.error("Error checking user:", error);
+        navigate("/login");
+      }
+    };
+    
+    checkUser();
+  }, [navigate]);
+
   useEffect(() => {
     if (currentUser) {
       socket.current = io(host);
       socket.current.emit("add-user", currentUser._id);
+
+      return () => {
+        if (socket.current) {
+          socket.current.disconnect();
+        }
+      };
     }
   }, [currentUser]);
 
-  useEffect(async () => {
-    if (currentUser) {
-      if (currentUser.isAvatarImageSet) {
-        const data = await axios.get(`${allUsersRoute}/${currentUser._id}`);
-        setContacts(data.data);
+  const fetchContacts = useCallback(async () => {
+    try {
+      if (currentUser?.isAvatarImageSet) {
+        const { data } = await axios.get(`${allUsersRoute}/${currentUser._id}`);
+        setContacts(data);
       } else {
         navigate("/setAvatar");
       }
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
     }
-  }, [currentUser]);
-  const handleChatChange = (chat) => {
+  }, [currentUser, navigate]);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchContacts();
+    }
+  }, [currentUser, fetchContacts]);
+
+  const handleChatChange = useCallback((chat) => {
     setCurrentChat(chat);
-  };
+  }, []);
+
   return (
     <>
       <Container>

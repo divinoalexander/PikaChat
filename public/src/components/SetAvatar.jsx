@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import { Buffer } from "buffer";
@@ -9,11 +9,19 @@ import { useNavigate } from "react-router-dom";
 import { setAvatarRoute } from "../utils/APIRoutes";
 
 export default function SetAvatar() {
-  const api = `https://api.dicebear.com/9.x/adventurer/svg`; // ✅ Replace <styleName> with an actual style
+  const api = "https://api.dicebear.com/9.x/adventurer/svg";
   const navigate = useNavigate();
   const [avatars, setAvatars] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAvatar, setSelectedAvatar] = useState(undefined);
+
+  const toastOptions = {
+    position: "bottom-right",
+    autoClose: 8000,
+    pauseOnHover: true,
+    draggable: true,
+    theme: "dark",
+  };
 
   useEffect(() => {
     if (!localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)) {
@@ -21,58 +29,60 @@ export default function SetAvatar() {
     }
   }, [navigate]);
 
-  useEffect(() => {
-    const toastOptions = {
-      position: "bottom-right",
-      autoClose: 8000,
-      pauseOnHover: true,
-      draggable: true,
-      theme: "dark",
-    };
-
-    const fetchAvatars = async () => {
-      try {
-        const data = [];
-        for (let i = 0; i < 4; i++) {
-          const response = await axios.get(`${api}?seed=${Math.random()}`, {
-            responseType: "text", // ✅ Ensure response is in text format (SVG)
-          });
-          const buffer = Buffer.from(response.data); // ✅ Corrected Buffer usage
-          data.push(buffer.toString("base64"));
-        }
-        setAvatars(data);
-      } catch (error) {
-        console.error("Error fetching avatars:", error);
-        toast.error("Failed to load avatars. Try again!", toastOptions);
-      } finally {
-        setIsLoading(false);
+  const fetchAvatars = useCallback(async () => {
+    try {
+      const data = [];
+      for (let i = 0; i < 4; i++) {
+        const response = await axios.get(`${api}?seed=${Math.random()}`, {
+          responseType: "text",
+        });
+        const buffer = Buffer.from(response.data);
+        data.push(buffer.toString("base64"));
       }
-    };
+      setAvatars(data);
+    } catch (error) {
+      console.error("Error fetching avatars:", error);
+      toast.error("Failed to load avatars. Try again!", toastOptions);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api, toastOptions]);
 
+  useEffect(() => {
     fetchAvatars();
-  }, []);
+  }, [fetchAvatars]);
 
   const setProfilePicture = async () => {
     if (selectedAvatar === undefined) {
-      toast.error("Please select an avatar");
+      toast.error("Please select an avatar", toastOptions);
       return;
     }
 
-    const user = JSON.parse(localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY));
+    try {
+      const user = JSON.parse(
+        localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
+      );
+      const { data } = await axios.post(`${setAvatarRoute}/${user._id}`, {
+        image: avatars[selectedAvatar],
+      });
 
-    const { data } = await axios.post(`${setAvatarRoute}/${user._id}`, {
-      image: avatars[selectedAvatar],
-    });
-
-    if (data.isSet) {
-      user.isAvatarImageSet = true;
-      user.avatarImage = data.image;
-      localStorage.setItem(process.env.REACT_APP_LOCALHOST_KEY, JSON.stringify(user));
-      navigate("/");
-    } else {
-      toast.error("Error setting avatar. Please try again.");
+      if (data.isSet) {
+        user.isAvatarImageSet = true;
+        user.avatarImage = data.image;
+        localStorage.setItem(
+          process.env.REACT_APP_LOCALHOST_KEY,
+          JSON.stringify(user)
+        );
+        navigate("/");
+      } else {
+        toast.error("Error setting avatar. Please try again.", toastOptions);
+      }
+    } catch (error) {
+      console.error("Error setting avatar:", error);
+      toast.error("Failed to set avatar. Please try again.", toastOptions);
     }
-  }
+  };
+
   return (
     <>
       {isLoading ? (
